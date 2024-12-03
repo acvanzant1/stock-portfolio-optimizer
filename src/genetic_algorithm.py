@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from data_fetching import fetch_stock_data
 from data_processing import process_stock_data
 from nsga2 import get_efficient_frontier
+from gradient_descent import MultiObjectiveGradientDescent
 
 def plot_efficient_frontier(risks, returns, weights, tickers, show_points=True, show_labels=True):
     """Plot the efficient frontier with annotations and additional information"""
@@ -97,6 +98,21 @@ def main():
 
     # Process data
     adj_close, returns_data = process_stock_data(stock_data)
+
+    # Example usage of MultiObjectiveGradientDescent
+    def objective1(x):
+        return np.sum(x**2)
+
+    def objective2(x):
+        return np.sum((x - 2)**2)
+
+    # Initialize optimizer
+    optimizer = MultiObjectiveGradientDescent(objectives=[objective1, objective2])
+
+    # Optimize starting from an initial point
+    initial_point = np.array([1.0, 1.0])
+    optimized_params = optimizer.optimize(initial_point)
+    print("Optimized Parameters:", optimized_params)
 
     # Get efficient frontier
     risks, returns, weights = get_efficient_frontier(returns_data)
