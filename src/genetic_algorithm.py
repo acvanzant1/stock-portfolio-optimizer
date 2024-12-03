@@ -4,7 +4,7 @@ from data_fetching import fetch_stock_data
 from data_processing import process_stock_data
 from nsga2 import get_efficient_frontier
 
-def plot_efficient_frontier(risks, returns, show_points=True, show_labels=True):
+def plot_efficient_frontier(risks, returns, weights, tickers, show_points=True, show_labels=True):
     """Plot the efficient frontier with annotations"""
     plt.figure(figsize=(10, 6))
     
@@ -32,6 +32,15 @@ def plot_efficient_frontier(risks, returns, show_points=True, show_labels=True):
         plt.annotate('Maximum Return',
                     (risks[max_return_idx], returns[max_return_idx]),
                     xytext=(10, -10), textcoords='offset points')
+        
+        # Annotate highest Sharpe ratio portfolio
+        sharpe_ratios = returns / risks
+        max_sharpe_idx = np.argmax(sharpe_ratios)
+        plt.scatter(risks[max_sharpe_idx], returns[max_sharpe_idx], 
+                   color='purple', marker='*', s=150, label='Max Sharpe Ratio')
+        plt.annotate('Max Sharpe Ratio',
+                    (risks[max_sharpe_idx], returns[max_sharpe_idx]),
+                    xytext=(-50, 10), textcoords='offset points')
     
     # Formatting
     plt.xlabel('Expected Risk (Volatility)', fontsize=12)
@@ -57,6 +66,10 @@ def plot_portfolio_composition(weights, tickers, title="Portfolio Composition"):
             shadow=True, startangle=90)
     plt.axis('equal')
     plt.title(title, fontsize=14)
+    
+    # Add legend and total number of assets
+    plt.legend(title=f"Total Assets: {len(significant_tickers)}", loc="upper right")
+    plt.text(-1.5, -1.5, f"Cumulative Weight: {sum(significant_weights):.2f}", fontsize=10)
     
     return plt.gcf()
 
@@ -94,7 +107,7 @@ def main():
         if weight > 0.01:
             print(f"{ticker:<5} {weight:.4f}")
 
-    plot_efficient_frontier(risks, returns)
+    plot_efficient_frontier(risks, returns, weights, tickers)
     plt.show()
 
     min_risk_idx = np.argmin(risks)
