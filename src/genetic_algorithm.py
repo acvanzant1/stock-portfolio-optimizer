@@ -5,8 +5,8 @@ from data_processing import process_stock_data
 from nsga2 import get_efficient_frontier
 
 def plot_efficient_frontier(risks, returns, weights, tickers, show_points=True, show_labels=True):
-    """Plot the efficient frontier with annotations"""
-    plt.figure(figsize=(10, 6))
+    """Plot the efficient frontier with annotations and additional information"""
+    plt.figure(figsize=(12, 8))
     
     # Plot efficient frontier line
     plt.plot(risks, returns, 'b-', linewidth=2, label='Efficient Frontier')
@@ -41,13 +41,28 @@ def plot_efficient_frontier(risks, returns, weights, tickers, show_points=True, 
         plt.annotate('Max Sharpe Ratio',
                     (risks[max_sharpe_idx], returns[max_sharpe_idx]),
                     xytext=(-50, 10), textcoords='offset points')
+        
+        # Add legend with additional information
+        sharpe_ratio_value = sharpe_ratios[max_sharpe_idx]
+        min_risk_value = risks[min_risk_idx]
+        max_return_value = returns[max_return_idx]
+        
+        # Determine investment suggestion based on Sharpe ratio
+        investment_suggestion = "Consider Investing" if sharpe_ratio_value > 1 else "Re-evaluate Investment"
+        
+        legend_text = (f"Sharpe Ratio: {sharpe_ratio_value:.2f}\n"
+                       f"Min Risk: {min_risk_value:.2%}\n"
+                       f"Max Return: {max_return_value:.2%}\n"
+                       f"Suggestion: {investment_suggestion}")
+        
+        plt.gcf().text(0.75, 0.5, legend_text, fontsize=10, bbox=dict(facecolor='white', alpha=0.5))
     
     # Formatting
     plt.xlabel('Expected Risk (Volatility)', fontsize=12)
     plt.ylabel('Expected Return', fontsize=12)
     plt.title('Efficient Frontier', fontsize=14)
     plt.grid(True, linestyle='--', alpha=0.7)
-    plt.legend()
+    plt.legend(loc='upper left')
     
     # Adjust margins and layout
     plt.tight_layout()
