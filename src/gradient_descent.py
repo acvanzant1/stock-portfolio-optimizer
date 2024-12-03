@@ -1,7 +1,7 @@
 import numpy as np
 
 class MultiObjectiveGradientDescent:
-    def __init__(self, objectives, learning_rate=0.01, max_iter=1000, tolerance=1e-6):
+    def __init__(self, objectives, learning_rate=0.05, max_iter=1000, tolerance=1e-6):
         """
         Initialize the multi-objective gradient descent optimizer.
 
