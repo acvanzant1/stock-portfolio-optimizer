@@ -1,7 +1,9 @@
 import numpy as np
+from data_fetching import fetch_stock_data
+from data_processing import process_stock_data
 
 class MultiObjectiveGradientDescent:
-    def __init__(self, objectives, learning_rate=0.05, max_iter=1000, tolerance=1e-6):
+    def __init__(self, objectives, learning_rate=0.01, max_iter=1000, tolerance=1e-6):
         """
         Initialize the multi-objective gradient descent optimizer.
 
@@ -58,7 +60,7 @@ class MultiObjectiveGradientDescent:
         Perform the optimization using gradient descent.
 
         Args:
-            x0 (np.ndarray): Initial point in the parameter space.
+            x0 (np.ndarray): Initial point in the parameter space, derived from stock data.
 
         Returns:
             np.ndarray: Optimized parameters.
@@ -79,6 +81,13 @@ class MultiObjectiveGradientDescent:
 
 # Example usage
 if __name__ == "__main__":
+    # Fetch and process stock data
+    tickers = ["AAPL", "GOOGL", "AMZN", "MSFT"]
+    start_date = "2020-01-01"
+    end_date = "2023-01-01"
+    stock_data = fetch_stock_data(tickers, start_date, end_date)
+    _, returns_data = process_stock_data(stock_data)
+
     # Define example objective functions
     def objective1(x):
         return np.sum(x**2)
@@ -89,7 +98,7 @@ if __name__ == "__main__":
     # Initialize optimizer
     optimizer = MultiObjectiveGradientDescent(objectives=[objective1, objective2])
 
-    # Optimize starting from an initial point
-    initial_point = np.array([1.0, 1.0]) ## TODO: Change this to pull accurate initial point
+    # Use the mean of returns as the initial point for optimization
+    initial_point = returns_data.mean().values
     optimized_params = optimizer.optimize(initial_point)
     print("Optimized Parameters:", optimized_params)
