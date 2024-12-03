@@ -90,6 +90,6 @@ if __name__ == "__main__":
     optimizer = MultiObjectiveGradientDescent(objectives=[objective1, objective2])
 
     # Optimize starting from an initial point
-    initial_point = np.array([1.0, 1.0])
+    initial_point = np.array([1.0, 1.0]) ## TODO: Change this to pull accurate initial point
     optimized_params = optimizer.optimize(initial_point)
     print("Optimized Parameters:", optimized_params)
