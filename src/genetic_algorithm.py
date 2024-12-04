@@ -91,7 +91,9 @@ def plot_portfolio_composition(weights, tickers, title="Portfolio Composition"):
 
 def main():
     # Fetch data
-    tickers = ["AAPL", "AMZN", "MSFT", "GOOG"]
+    tickers = ["AAPL", "NVDA", "MSFT", "AMZN", "META", "TSLA", "GOOG", 
+    "AVGO", "JPM", "LLY", "UNH", "V", "XOM", "MA", "COST", "HD", 
+    "PG", "WMT", "NFLX", "JNJ", "CRM", "BAC"]
     start_date = "2020-01-01"
     end_date = "2023-12-31"
     stock_data = fetch_stock_data(tickers, start_date, end_date)
