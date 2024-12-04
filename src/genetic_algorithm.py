@@ -2,91 +2,89 @@ import numpy as np
 import matplotlib.pyplot as plt
 from data_fetching import fetch_stock_data
 from data_processing import process_stock_data
-from nsga2 import get_efficient_frontier
-from gradient_descent import MultiObjectiveGradientDescent
+from pymoo.core.problem import ElementwiseProblem
+from pymoo.core.repair import Repair
+from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.optimize import minimize
+import operator 
 
-def plot_efficient_frontier(risks, returns, weights, tickers, show_points=True, show_labels=True):
-    """Plot the efficient frontier with annotations and additional information"""
-    plt.figure(figsize=(12, 8))
-    
-    # Plot efficient frontier line
-    plt.plot(risks, returns, 'b-', linewidth=2, label='Efficient Frontier')
-    
-    if show_points:
-        # Plot individual portfolios
-        plt.scatter(risks, returns, c='blue', alpha=0.5, s=30)
-    
-    if show_labels:
-        # Annotate minimum risk and maximum return portfolios
-        min_risk_idx = np.argmin(risks)
-        max_return_idx = np.argmax(returns)
-        
-        plt.scatter(risks[min_risk_idx], returns[min_risk_idx], 
-                   color='red', marker='*', s=150, label='Minimum Risk')
-        plt.scatter(risks[max_return_idx], returns[max_return_idx], 
-                   color='green', marker='*', s=150, label='Maximum Return')
-        
-        # Add annotations
-        plt.annotate('Minimum Risk',
-                    (risks[min_risk_idx], returns[min_risk_idx]),
-                    xytext=(10, 10), textcoords='offset points')
-        plt.annotate('Maximum Return',
-                    (risks[max_return_idx], returns[max_return_idx]),
-                    xytext=(10, -10), textcoords='offset points')
-        
-        # Annotate highest Sharpe ratio portfolio
-        sharpe_ratios = returns / risks
-        max_sharpe_idx = np.argmax(sharpe_ratios)
-        plt.scatter(risks[max_sharpe_idx], returns[max_sharpe_idx], 
-                   color='purple', marker='*', s=150, label='Max Sharpe Ratio')
-        plt.annotate('Max Sharpe Ratio',
-                    (risks[max_sharpe_idx], returns[max_sharpe_idx]),
-                    xytext=(-50, 10), textcoords='offset points')
-        
-        # Add legend with additional information
-        sharpe_ratio_value = sharpe_ratios[max_sharpe_idx]
-        min_risk_value = risks[min_risk_idx]
-        max_return_value = returns[max_return_idx]
-        
-        # Determine investment suggestion based on Sharpe ratio
-        investment_suggestion = "Consider Investing" if sharpe_ratio_value > 1 else "Re-evaluate Investment"
-        
-        legend_text = (f"Sharpe Ratio: {sharpe_ratio_value:.2f}\n"
-                       f"Min Risk: {min_risk_value:.2%}\n"
-                       f"Max Return: {max_return_value:.2%}\n"
-                       f"Suggestion: {investment_suggestion}")
-        
-        plt.gcf().text(0.75, 0.5, legend_text, fontsize=10, bbox=dict(facecolor='white', alpha=0.5))
-    
-    # Formatting
-    plt.xlabel('Expected Risk (Volatility)', fontsize=12)
-    plt.ylabel('Expected Return', fontsize=12)
-    plt.title('Efficient Frontier', fontsize=14)
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.legend(loc='upper left')
-    
-    # Adjust margins and layout
-    plt.tight_layout()
-    
+class PortfolioProblem(ElementwiseProblem):
+    def __init__(self, mu, cov, risk_free_rate=0.02, **kwargs):
+        """Initialize portfolio optimization problem"""
+        super().__init__(n_var=len(mu), 
+                        n_obj=2,
+                        xl=0.0,
+                        xu=1.0,
+                        **kwargs)
+        self.mu = mu
+        self.cov = cov
+        self.risk_free_rate = risk_free_rate
+
+    def _evaluate(self, x, out, *args, **kwargs):
+        exp_return = x @ self.mu
+        exp_risk = np.sqrt(x.T @ self.cov @ x) * np.sqrt(250.0)
+        sharpe = (exp_return - self.risk_free_rate) / exp_risk
+
+        out["F"] = [exp_risk, -exp_return]
+        out["sharpe"] = sharpe
+
+class PortfolioRepair(Repair):
+    def _do(self, problem, X, **kwargs):
+        # Clean small weights and normalize
+        X[X < 1e-3] = 0
+        return X / X.sum(axis=1, keepdims=True)
+
+def get_efficient_frontier(ind_er, cov_matrix):
+    """Calculate efficient frontier using pymoo NSGA2"""
+    # Calculate inputs for optimization
+    mu = np.array(ind_er)
+    cov = np.array(cov_matrix)
+
+    # Setup optimization
+    problem = PortfolioProblem(mu, cov)
+    algorithm = NSGA2(repair=PortfolioRepair())
+
+    # Run optimization
+    res = minimize(
+        problem,
+        algorithm,
+        ('n_gen', 100),
+        seed=1,
+        verbose=True
+    )
+
+    X, F, sharpe = res.opt.get("X", "F", "sharpe")
+    F = F * [1, -1]
+    max_sharpe = sharpe.argmax()
+
+    return X, F, sharpe, max_sharpe, mu, cov
+
+def plot_efficient_frontier(F, max_sharpe, show_points=True, show_labels=True):
+
+    plt.scatter(F[:, 0], F[:, 1], facecolor="none", edgecolors="blue", alpha=0.5, label="Pareto-Optimal Portfolio")
+    plt.scatter(F[max_sharpe, 0], F[max_sharpe, 1], marker="x", s=100, color="red", label="Max Sharpe Portfolio")
+    plt.legend()
+    plt.xlabel("expected volatility")
+    plt.ylabel("expected return")
+
     return plt.gcf()
 
-def plot_portfolio_composition(weights, tickers, title="Portfolio Composition"):
-    """Plot portfolio composition as a pie chart"""
-    # Filter out tiny allocations for cleaner visualization
-    significant_allocations = weights > 0.01
-    significant_weights = weights[significant_allocations]
-    significant_tickers = [tickers[i] for i, flag in enumerate(significant_allocations) if flag]
-    
-    plt.figure(figsize=(8, 8))
-    plt.pie(significant_weights, labels=significant_tickers, autopct='%1.1f%%',
+def plot_pie_chart(allocation):
+    for al in allocation:
+        if al[1] <= 1e-6:
+            allocation.remove(al)
+
+    col_name = []
+    w1 = []
+    for name, w in allocation:
+        col_name.append(name)
+        w1.append(w)
+        
+    fig1, ax1 = plt.subplots()
+    ax1.pie(w1, labels=col_name, autopct='%1.1f%%',
             shadow=True, startangle=90)
-    plt.axis('equal')
-    plt.title(title, fontsize=14)
-    
-    # Add legend and total number of assets
-    plt.legend(title=f"Total Assets: {len(significant_tickers)}", loc="upper right")
-    plt.text(-1.5, -1.5, f"Cumulative Weight: {sum(significant_weights):.2f}", fontsize=10)
-    
+    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
     return plt.gcf()
 
 def main():
@@ -99,58 +97,26 @@ def main():
     stock_data = fetch_stock_data(tickers, start_date, end_date)
 
     # Process data
-    adj_close, returns_data = process_stock_data(stock_data)
-
-    # Example usage of MultiObjectiveGradientDescent
-    def objective1(x):
-        return np.sum(x**2)
-
-    def objective2(x):
-        return np.sum((x - 2)**2)
-
-    # Initialize optimizer
-    optimizer = MultiObjectiveGradientDescent(objectives=[objective1, objective2])
-
-    # Optimize starting from an initial point
-    initial_point = np.array([1.0, 1.0])
-    optimized_params = optimizer.optimize(initial_point)
-    print("Optimized Parameters:", optimized_params)
+    adj_close, volatility, cov_matrix, ind_er, returns = process_stock_data(stock_data)
 
     # Get efficient frontier
-    risks, returns, weights = get_efficient_frontier(returns_data)
+    X, F, sharpe, max_sharpe, mu, cov = get_efficient_frontier(ind_er, cov_matrix)
 
-    # Print results
-    print("\nEfficient Frontier Results:")
-    print(f"Number of portfolios: {len(risks)}")
-    print(f"Risk range: {min(risks):.4f} to {max(risks):.4f}")
-    print(f"Return range: {min(returns):.4f} to {max(returns):.4f}")
+    allocation = {name: w for name, w in zip(adj_close.columns, X[max_sharpe])}
+    allocation = sorted(allocation.items(), key=operator.itemgetter(1), reverse=True)
 
-    # Print sample portfolio allocations
-    print("\nSample Portfolio Allocations:")
-    min_risk_idx = np.argmin(risks)
-    max_return_idx = np.argmax(returns)
+    print("Allocation With Best Sharpe")
+    for name, w in allocation:
+        print(f"{name:<5} {w}")
 
-    print("\nMinimum Risk Portfolio:")
-    for ticker, weight in zip(tickers, weights[min_risk_idx]):
-        if weight > 0.01:  # Only show significant allocations
-            print(f"{ticker:<5} {weight:.4f}")
+    x = X[max_sharpe].T
+    print("Best Sharpe: \nReturn     = ", x.T @ mu)
+    print("Volatility = ", np.sqrt(x.T @ cov @ x) * np.sqrt(250.0))
 
-    print("\nMaximum Return Portfolio:")
-    for ticker, weight in zip(tickers, weights[max_return_idx]):
-        if weight > 0.01:
-            print(f"{ticker:<5} {weight:.4f}")
-
-    plot_efficient_frontier(risks, returns, weights, tickers)
+    plot_efficient_frontier(F, max_sharpe)
     plt.show()
 
-    min_risk_idx = np.argmin(risks)
-    plot_portfolio_composition(weights[min_risk_idx], tickers, 
-                             "Minimum Risk Portfolio Composition")
-    plt.show()
-
-    max_return_idx = np.argmax(returns)
-    plot_portfolio_composition(weights[max_return_idx], tickers,
-                             "Maximum Return Portfolio Composition")
+    plot_pie_chart(allocation)
     plt.show()
 
 if __name__ == "__main__":
