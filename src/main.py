@@ -1,5 +1,5 @@
-from src.genetic_algorithm import main as run_genetic_algorithm
-from src.gradient_descent import main as run_gradient_descent
+from genetic_algorithm import main as run_genetic_algorithm
+from gradient_descent import main as run_gradient_descent
 
 def main():
     print("Running Genetic Algorithm...")
