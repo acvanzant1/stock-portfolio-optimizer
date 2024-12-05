@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from data_fetching import fetch_stock_data
-from data_processing import process_stock_data, calculate_portfolio_metrics
+from data_processing import process_stock_data, plot_prices, plot_volatility, plot_yearly_returns, calculate_portfolio_metrics
 from pymoo.core.problem import ElementwiseProblem
 from pymoo.core.repair import Repair
 from pymoo.algorithms.moo.nsga2 import NSGA2
@@ -48,7 +48,7 @@ def get_efficient_frontier(ind_er, cov_matrix):
     res = minimize(
         problem,
         algorithm,
-        ('n_gen', 1000),
+        ('n_gen', 200),
         seed=1,
         verbose=True
     )
@@ -88,6 +88,10 @@ def main():
     start_date = "2020-01-01"
     end_date = "2023-12-31"
     stock_data = fetch_stock_data(tickers, start_date, end_date)
+
+    plot_prices(stock_data)
+    plot_volatility(stock_data)
+    plot_yearly_returns(stock_data)
 
     # Process data
     adj_close, volatility, cov_matrix, ind_er, returns = process_stock_data(stock_data)
