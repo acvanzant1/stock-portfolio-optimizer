@@ -17,3 +17,56 @@ Data Sources:
 Historical stock data from Yahoo Finance.
 Historical stock data from the NASDAQ website.
 Note: We are open to questions and feedback to improve our project's scope and methodology.
+
+How to run the code:
+Ensure that all modules are downloaded from the requirements.txt file before attempting to run
+the program.If you do not want to alter any additional parameters, then simply open the main.py 
+and run it. This will report on 25 of the top technology stocks in the market from 2018-01-01 
+to 2019-12-31. 
+
+The default parameters for the algorithms are as follows:
+
+Genetic Algorithm (NSGA-II)
+ tickers = [
+   "AAPL", "NVDA", "MSFT", "TSM", "AVGO", "ORCL", "CRM", "SAP", "ASML", "CSCO",
+   "ADBE", "NOW", "AMD", "ACN", "IBM", "INTU", "QCOM", "TXN", "INTC", "SHOP",
+   "ROP", "AMAT", "SONY", "ANET", "PANW"
+]
+Population size: 100
+Number of generations: 500
+Starting value: $15,000
+Uses tournament selection
+SBX (Simulated Binary Crossover) for crossover operator: prob = 0.9
+Polynomial mutation for mutation operator: prob = 1/n_stocks
+
+
+Gradient Descent
+ tickers = [
+   "AAPL", "NVDA", "MSFT", "TSM", "AVGO", "ORCL", "CRM", "SAP", "ASML", "CSCO",
+   "ADBE", "NOW", "AMD", "ACN", "IBM", "INTU", "QCOM", "TXN", "INTC", "SHOP",
+   "ROP", "AMAT", "SONY", "ANET", "PANW"
+]
+Starting value: $15,000
+Learning rate: 0.01
+Maximum iterations: 1000
+Convergence tolerance: 1e-6
+
+Any of these parameters can be changed to alter the experiments ran on the data.
+There are no external input files required in order to run the code since all stock
+data is pulled from Yahoo Finance. The outputs of the program will include 
+a line graph detailing the closing prices of all stock tickers over the time period 
+being analyzed. Alongside this, two bar graphs will be output showing the annualized
+volatility and yearly returns of the chosen stocks. 
+
+The genetic algorithm will return a Pareto front graph detailing all viable 
+non-dominated solutions found during theexperiment. A pie graph showing the ratio for 
+how stocks should be invested in to maximize the Sharpe ratio is also output. It will 
+also return tabular data in the terminal detailing the most optimized return, volatility, 
+sharpe ratio, cumulative returns, annual returns, final portfolio value (from $15,000 
+default starting value), and diversification ratio. 
+
+The gradient descent algorithm will return a pie graph similar to the genetic algorithm
+which also shows the ratio at which the stocks should be invested in to maximize the
+realized Sharpe ratio. It will also return tabular data similar to the genetic algorithm of
+the most optimized return, volatility, sharpe ratio, cumulative returns, annual returns, 
+final portfolio value (from $15,000 default starting value), and diversification ratio. 
